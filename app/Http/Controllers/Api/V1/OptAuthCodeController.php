@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api\V1;
 use App\Http\Controllers\Controller;
 use App\Models\Api\V1\OptAuthCode;
 use App\Models\User;
+use Exception;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 
@@ -58,12 +59,21 @@ class OptAuthCodeController extends Controller
      */
     public function requestOTP(OptAuthCode $optAuthCode)
     {
-        $optAuthCode->truncate();
-        //generate OTP code and send code to user email.
-        $optAuthCode->generateOTP();
-       
-        // return redirect()->route('storeOtp');
-        return redirect()->route('otp.store')->with(['message' => 'OTP code sent successfully', 'otp' => $optAuthCode]);
+        try {
+
+            $optAuthCode->truncate();
+            //generate OTP code and send code to user email.
+            $optAuthCode->generateOTP();
+           
+            return response([
+                "message" => "OTP Sent successfully"
+            ]);
+            // return redirect()->route('otp.store')->with(['message' => 'OTP code sent successfully', 'otp' => $optAuthCode]);
+        } catch(Exception $exception) {
+            return response([
+                "errorMessage" => "Message not sent",
+            ]);
+        }
         
     }
 
