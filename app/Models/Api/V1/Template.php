@@ -11,7 +11,7 @@ class Template extends Model
 {
     /** @use HasFactory<\Database\Factories\Api/V1/TemplateFactory> */
     use HasFactory;
-    protected $fillable = ['plan', 'price', 'name', 'imagepath'];
+    protected $fillable = ['plan', 'price', 'name', 'imagepath', 'public_id'];
 
     // public function scopeFilter(Builder | QueryBuilder $query, string | null $plan ) : Builder | QueryBuilder{
     //     return $query->when($plan['premium'] ?? null, function ($query, $premium) {

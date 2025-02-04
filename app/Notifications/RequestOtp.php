@@ -7,14 +7,14 @@ use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
 
-class OtpRequest extends Notification
+class RequestOtp extends Notification
 {
     use Queueable;
 
     /**
      * Create a new notification instance.
      */
-    public function __construct(public string $otp)
+    public function __construct(public string $otp, public string $otp_expire_time)
     {
         //
     }
@@ -34,9 +34,7 @@ class OtpRequest extends Notification
      */
     public function toMail(object $notifiable): MailMessage
     {
-        // return (new MailMessage)->markdown('no');
-        return (new MailMessage)->subject('OTP request')->line('Here is your requested OTP')->line("{$this->otp}");
-        // ->line("OTP expires at {$this->otp_expire_time}");
+        return (new MailMessage)->markdown('mail.request-otp');
     }
 
     /**

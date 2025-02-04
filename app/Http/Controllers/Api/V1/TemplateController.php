@@ -7,6 +7,8 @@ use App\Http\Resources\TemplateCollection;
 use App\Http\Resources\TemplateResource;
 use App\Mail\RequestTemplate;
 use App\Models\Api\V1\Template;
+use Cloudinary\Cloudinary;
+// use CloudinaryLabs\CloudinaryLaravel\Facades\Cloudinary;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Storage;
@@ -17,6 +19,8 @@ class TemplateController extends Controller
     /**
      * Display a listing of the resource.
      */
+    protected $cloudinary;
+
     public function index()
     {
         // $plan = request()->only('plan');
@@ -40,18 +44,37 @@ class TemplateController extends Controller
 
         ]);
 
-        $reqImg = $request->file('imagepath');
-        $uploadedImg = Storage::disk('public')->put('/', $reqImg);
+        try {
+            $reqImg = $request->file('imagepath')->getRealPath();
 
-
-        $imageUrl =  config('services.baseUrl') . Storage::url($uploadedImg);
+            $uploadedImg = cloudinary()->upload($reqImg);
+            $imgUrl = $uploadedImg->getSecurePath();
+            $public_id = $uploadedImg->getPublicId();
     
-        return Template::create([
+            return Template::create([
             'name' => $request->name,
             'price' => $request->price,
             'plan' => $request->plan,
-            'imagepath' => $imageUrl,
-        ]);
+            'imagepath' => $imgUrl,
+            'public_id' => $public_id,
+            ]);
+        } catch (\Exception $e) {
+            return response()->json(['error' => $e->getMessage()], 500);
+        }
+        // $imgName = time() . '.' . $reqImg->getClientOriginalExtension();
+        // $filePath = $reqImg->storeAs('uploads', $imgName, 'public');
+        // $uploadedImg = Storage::disk('public')->put('/', $reqImg);
+
+
+        // // $imageUrl =  config('services.baseUrl') . Storage::url($uploadedImg);
+        // $imageUrl =  config('services.baseUrl') . Storage::url($uploadedImg);
+    
+        // return Template::create([
+        //     'name' => $request->name,
+        //     'price' => $request->price,
+        //     'plan' => $request->plan,
+        //     // 'imagepath' => $reqImg,
+        // ]);
     }
 
     /**
@@ -74,10 +97,24 @@ class TemplateController extends Controller
             "imagepath" => "sometimes |mimes:png,jpg,jpeg,webp | max:2048",
 
         ]);
+        $publicId = $template->public_id;
+    
+        try {
+            // Upload new image and overwrite existing one
+            $uploadedFileUrl = cloudinary()->upload($request->file('image')->getRealPath(), [
+                'public_id' => $publicId, // Keep the same public_id
+                'overwrite' => true,
+            ])->getSecurePath();
+    
+            $template->update($updateTemplate);
+            return new TemplateResource($template);
 
-        $template->update($updateTemplate);
+            // return response()->json(['url' => $uploadedFileUrl, 'public_id' => $publicId], 200);
+        } catch (\Exception $e) {
+            return response()->json(['error' => $e->getMessage()], 500);
+        }
 
-        return new TemplateResource($template);
+
     }
 
     /**
@@ -85,6 +122,7 @@ class TemplateController extends Controller
      */
     public function destroy(Template $template)
     {
+        cloudinary()->destroy($template->public_id);
         $template->delete();
 
         return response(status: 204);// 204 No Content
@@ -101,7 +139,7 @@ class TemplateController extends Controller
         Mail::to(env('MAIL_USERNAME'))->send( new RequestTemplate( $request->email, $request->name,$template->name, $request->templateId));
 
         return response([
-            "template" => $template,
+            "template" => "Template request processed successfully",
         ]);
     }
 }

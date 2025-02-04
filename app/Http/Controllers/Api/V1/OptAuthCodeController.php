@@ -25,7 +25,7 @@ class OptAuthCodeController extends Controller
     public function store(Request $request, OptAuthCode $optAuthCode)
     {
         //verify OTP code
-        $request->validate([
+        try{$request->validate([
             'otp_code' => 'required|integer|digits:4',
         ]);
 
@@ -47,10 +47,15 @@ class OptAuthCodeController extends Controller
         }
         
         $optAuthCode->resetOTP();
-        // return response([
-        //     'message' => "redirect successful"
-        // ]);
-        return redirect()->action([TemplateController::class, 'store'])->with(['message' => 'success']);
+        return response([
+            'message' => "OTP verified successfully"
+        ]);}
+        catch(Exception $exception) {
+            return response([
+                "errorMessage" => "error",
+            ]);
+        } 
+        // return redirect()->action([TemplateController::class, 'store'])->with(['message' => 'success']);
         
     }
 
@@ -60,21 +65,30 @@ class OptAuthCodeController extends Controller
     public function requestOTP(OptAuthCode $optAuthCode)
     {
         try {
-
-            $optAuthCode->truncate();
-            //generate OTP code and send code to user email.
-            $optAuthCode->generateOTP();
-           
+            $user = User::find(1);
+            // $optAuthCode->generateOTP($user->id);
+            $userOtp = $user->optAuthCode()->get();
+            if(!count($userOtp)) {
+                $optAuthCode->generateOTP($user->id);
+                return response([
+                    "message" => 'OTP sent successfully',
+                ]);
+            }
+            $user->optAuthCode()->delete();
+            // $user->optAuthCode()->update([
+            //     'otp_code' => null,
+            // ]);
+            $optAuthCode->generateOTP($user->id);
             return response([
-                "message" => "OTP Sent successfully"
+                "message" => 'OTP sent successfully',
             ]);
+         
             // return redirect()->route('otp.store')->with(['message' => 'OTP code sent successfully', 'otp' => $optAuthCode]);
-        } catch(Exception $exception) {
-            return response([
-                "errorMessage" => "Message not sent",
-            ]);
-        }
-        
+            } catch(Exception $exception) {
+                return response([
+                    "errorMessage" => "OTP not sent",
+                ]);
+            }        
     }
 
     /**
